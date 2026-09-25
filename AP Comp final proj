@@ -1,0 +1,509 @@
+var tables = ["Table1","Table2","Table3","Table4","Table5"];
+var filteredtables = [];
+var food = ["Pasta", "Burger", "Salad", "Cake", "Pizza"];
+var tableorders = [];
+var foodamount = [5,5,5,5,5];
+var foodprices = [12.99,8.99,4.99,5.99,6.99];
+var tableTimers = [];
+var money = 0;
+var tableTimerInterval;
+var tablesServed = [];
+
+function startGame(){
+
+  if (tableTimerInterval == undefined){
+    clearInterval(tableTimerInterval);
+  }
+  
+  tableTimerInterval = setInterval(checkTableTime, 1000);
+  
+}
+
+function homeScreen(){
+    setScreen("Homescreen");
+    startGame();
+    
+    AutoAdd();
+}
+
+setScreen("TutorialScreen");
+setProperty("foodDropdown","options", food);
+
+onEvent("tutorialBut","click", function(){
+  setScreen("TutorialScreen");
+});
+
+onEvent("nextButton","click",function(){
+  setScreen("TutorialScreen2");
+});
+
+onEvent("nextButton2","click",function(){
+  setScreen("TutorialScreen3");
+});
+
+onEvent("nextButton3","click",function(){
+  setScreen("TutorialScreen4");
+});
+
+onEvent("nextButton4","click",function(){
+  setScreen("TutorialScreen5");
+});
+
+onEvent("nextButton5","click",function(){
+  setScreen("TutorialScreen6");
+});
+
+onEvent("nextButton6","click",function(){
+  homeScreen();
+});
+
+
+onEvent("skiptut_1", "click", function(){
+  homeScreen();
+});
+onEvent("skiptut_2", "click", function(){
+  homeScreen();
+});
+onEvent("skiptut_3", "click", function(){
+  homeScreen();
+});
+onEvent("skiptut_4", "click", function(){
+  homeScreen();
+});
+onEvent("skiptut_5", "click", function(){
+  homeScreen();
+});
+
+// Music
+
+//playSound("sound://category_background/gametime.mp3", true);
+
+// Update Tables' Status
+
+function updateTable (){
+  var text = "";
+  for (var i = 0; i < tables.length; i++){
+    text = text + "\n" + tables[i] + ":" + "\n" + checkstatus(tables[i]);
+  }
+  setProperty("Orders","text", text);
+}
+
+// In certain intervals the tables will be randomly taken by a customer
+
+function AutoAdd(){
+  playSound("sound://category_achievements/melodic_win_4.mp3", false);
+  setInterval(addTable, 3000);
+  setInterval(updateTable, 3000);
+  updateTable();
+}
+
+//randomize the table that is added
+//tables souce: 
+
+function checkTableTime(){
+  var time = getTime ();
+  var timetillleave = randomNumber(8000,10000);
+  
+  for (var i = tableTimers.length-1; i >= 0; i--){
+    
+    if (tableTimers[i] == -1) {
+      continue; 
+    }
+    
+    var elapsed = time - tableTimers[i];
+    
+    if (elapsed >= timetillleave && isServed(tableName) == false){
+      var tableName = filteredtables[i];
+
+      if (tableName != undefined){
+        var tablenum = tableName.toLowerCase();
+        setProperty(tablenum, "border-color", "transparent");
+        updateTable();
+        removeItem(filteredtables, i);
+        removeItem(tableorders, i);
+        removeItem(tableTimers, i);
+        setProperty("restStatus","text", "A customer has left");
+      }
+      
+    }
+  }
+  updateTable();
+}
+
+function addTable (){
+  var newcustomer = tables[randomNumber(0,tables.length-1)];
+  var tablenum = newcustomer.toLowerCase();
+  
+  if (isTaken(newcustomer) == false){
+    appendItem(filteredtables, newcustomer);
+    appendItem (tableorders, randomFood()); 
+    appendItem (tableTimers, getTime());
+    
+    setProperty(tablenum, "border-color", "red");
+    }
+  
+  return newcustomer;
+}
+
+// randomize the table that is added
+// determine the status of the table on whether it is taken or not
+
+function checkstatus (table){
+  if (isTaken(table)) {
+    return "TAKEN";
+  } else {
+    return "";
+  }
+}
+
+function isTaken(table){
+  for (var i = 0; i < filteredtables.length; i++){
+    if (filteredtables[i] == table){
+      return true;
+    }
+  }
+  return false;
+}
+
+function isServed(table){
+  for (var i = 0; i < tablesServed.length; i++){
+    if (tablesServed[i] == table){
+      return true;
+    }
+  }
+  return false;
+}
+
+// Finds different index of the lists
+
+function findTableindex (table){
+  for (var i = 0; i < filteredtables.length; i++){
+    if (filteredtables[i] == table){
+      return i;
+    }
+  }
+  return -1;
+}
+
+function findFoodindex (foodinsert){
+  for (var i = 0; i < food.length; i++){
+    if (food[i] == foodinsert){
+      return i;
+    }
+  }
+  return -1;
+} 
+
+// Customer will choose a random food for their order that is recorded 
+
+function randomFood(){
+  var orders = [];
+  var numItems = randomNumber(1,5);
+  
+
+  for (var i = 0; i < numItems; i++){
+    appendItem(orders, food[randomNumber(0, food.length-1)]);
+  }
+  
+  return orders;
+}
+
+function keepOrder(number){
+  var index = findTableindex("Table" + number);
+
+  if (index != -1 && tableorders[index] != undefined) {
+    var foodorder = tableorders[index];
+    var totalprice = totalPrice(foodorder);
+
+    setScreen("Order" + number);
+    setProperty("customer_Order" + number,"text", findAmount(foodorder) + "\nTotal: $" + totalprice);
+  } else {
+    setProperty("table" + number,"text","Table " + number + " is currently empty");
+  }
+}
+
+function findAmount (orders){
+  var text = "";
+  
+  for (var j = 0; j < food.length; j++){
+    var count = 0;
+    for (var k = 0; k < orders.length; k++){
+      if (orders[k] == food[j]){
+        count ++;
+      }
+    }
+    
+    
+    
+    if (count > 0){
+      text = text + food[j] + ": " + count + "\n";
+    }
+  }
+  return text;
+}
+
+function ClickTable(next, number){
+  onEvent("table" + next,"click", function(){
+
+    var index = findTableindex("Table" + number);
+
+    if (index != -1) {
+      tableTimers[index] = -1; 
+    }
+
+    keepOrder(number);
+  });
+}
+
+ClickTable("1","1");
+ClickTable("2","2");
+ClickTable("3","3");
+ClickTable("4","4");
+ClickTable("5","5");
+
+// Checks if the user chooses the correct answer and sends them back to the homepage
+
+function isOrderCorrect(order, number){
+  for (var orderIndex = 0; orderIndex < order.length; orderIndex++){
+    var Food = order[orderIndex];
+    var inputID = number + "amount" + Food;
+    var input = getText(inputID);
+    if (input == ""){
+      input = 0;
+    }
+    
+    input = Number(input);
+    if (input < 1){
+      return false;
+    }
+  }
+  
+  for (var foodIndex = 0; foodIndex < food.length; foodIndex++){
+    var foodItem = food[foodIndex];
+    var inputID2 = number + "amount" + foodItem;
+    var input2 = getText(inputID2);
+    if (input2 == ""){
+      input2 = 0;
+    }
+    input2 = Number(input2);
+    var found = false;
+    for (var orderIndex2 = 0; orderIndex2 < order.length; orderIndex2++){
+        if (foodItem == order[orderIndex2]){
+          found = true;
+          break;
+        }
+      }
+      if (!found && input2 > 0){
+        return false;
+      }
+    }
+  return true;
+}
+
+function correctOrder(number){
+  var index = findTableindex("Table" + number);
+  
+  var tableorder = tableorders[index];
+  
+  var enough = true;
+  
+
+  if (isOrderCorrect(tableorder, number) == true && isAmountCorrect(number, tableorder) == true && enough == true) {
+    changeFoodAmount(tableorder);
+  
+    money = money + totalPrice(tableorder);
+    setProperty("restStatus","text", "You have $" + money);
+    setProperty("table" + number, "border-color","transparent");
+
+    removeItem(filteredtables, index);
+    removeItem(tableorders,index);
+    removeItem(tableTimers,index);
+    setScreen("Homescreen");
+    updateTable();
+    playSound("sound://category_bell/vibrant_game_correct_answer_1.mp3", false);
+
+  } else if (!enough) {
+  setProperty("customer_Order" + number,"text", "\nYou do not have \nenough ingredients");
+  setProperty("backOrder" + number, "background-color","red");
+  playSound("sound://category_digital/failure.mp3",false); 
+  playSound("sound://category_digital/failure.mp3",false); 
+  } else {
+    setProperty("customer_Order" + number,"text", "\nThat is not the correct order");
+    setProperty("backOrder" + number, "background-color","red");
+    playSound("sound://category_digital/failure.mp3",false);
+    playSound("sound://category_digital/failure.mp3",false);
+  }
+}
+
+function isAmountCorrect (number,order){
+  for (var i = 0; i < food.length; i++) {
+    
+    var count = 0;
+    for (var k = 0; k < order.length; k++){
+      if (order[k] == food[i]){
+        count++;
+      }
+    }
+    
+    var input = getText(number + "amount" + food[i]);
+    input = Number(input);
+    
+    if (input == ""){
+      input = 0;
+    }
+    
+    if (input != count){
+      return false;
+    }
+    
+  }
+  return true;
+}
+
+function NextButton (number){
+  var id;
+  onEvent("nextBut" + number,"click",function(){
+    correctOrder(number);
+    for(var i = 0; i < food.length; i++){
+      id = food[i];
+      setProperty(number + "amount" + id, "text", "");
+    }
+  });
+}
+
+NextButton("1");
+NextButton("2");
+NextButton("3");
+NextButton("4");
+NextButton("5");
+
+//Stores Food amount and Prices
+
+function checkFoodAmount (){
+  var text = "";
+  for (var i = 0; i < foodamount.length; i++){
+    text = text + food[i] + ": " + foodamount[i] + "\n";
+  }
+  return text;
+}
+
+function checkFoodPrice (){
+  var text = "";
+  for (var i = 0; i < foodprices.length; i++){
+    text = text + food[i] + ": $" + foodprices[i] + "\n";
+  }
+  return text;
+}
+
+//Records the price and amount of food leftfor when either the storage button or shop button is clicked
+
+onEvent("foodBut","click",function(){
+  setScreen("StorageRoom");
+  setProperty("storage","text", checkFoodAmount());
+  playSound("sound://category_alerts/vibrant_game_cute_alert_1.mp3",false);
+});
+
+onEvent("shopBut","click",function(){
+  setScreen("Shop");
+  setProperty("shop_text","text", checkFoodPrice());
+  playSound("sound://category_alerts/airy_bell_notification.mp3", false);
+});
+
+// Extra Screen Switching Buttons 
+
+function backButton (name, number){
+  onEvent("back" + name + number,"click",function(){
+  setProperty("backOrder" + number, "background-color","rgb(138, 74, 12)");
+  setScreen("Homescreen");
+  playSound("sound://category_alerts/vibrant_game_shutter_alert_1_short_quick.mp3", false);
+});
+}
+
+backButton("But", "1");
+backButton("But", "2");
+backButton("Order", "1");
+backButton("Order", "2");
+backButton("Order", "3");
+backButton("Order", "4");
+backButton("Order", "5");
+
+onEvent("storageBut","click",function(){
+  setScreen("StorageRoom");
+  setProperty("storage","text", checkFoodAmount());
+  playSound("sound://category_alerts/airy_bell_notification.mp3", false);
+});
+
+onEvent("shopButton","click",function(){
+  setScreen("Shop");
+  setProperty("shop_text","text", checkFoodPrice());
+  playSound("sound://category_alerts/airy_bell_notification.mp3", false);
+});
+
+function totalPrice(tableorder){
+  var item;
+  var index;
+  var price;
+  var total = 0;
+  for (var i = 0; i < tableorder.length; i++){
+    item =  tableorder[i]; 
+    index = findFoodindex(item);
+    price = foodprices[index];
+    total = Math.round(total + price);
+  }
+  return total;
+}
+
+function changeFoodAmount (tableorder){
+  var enough = true;
+  for (var j = 0; j < food.length; j++){
+    var count = 0;
+    for (var k = 0; k < tableorder.length; k++){
+      if (tableorder[k] == food[j]){
+        count++;
+      }
+    }
+    if (count > foodamount[j]){
+      enough = false;
+    }
+  }
+  
+  if(!enough){
+    return false;
+  }
+
+  
+   for (var i = 0; i < food.length; i++){
+    var counti = 0;
+    for (var k = 0; k < tableorder.length; k++){
+      if (tableorder[k] == food[i]){
+        counti++;
+        }
+      }
+      
+    foodamount[i] = foodamount[i] - counti;
+    }
+  return true;
+}
+
+function buyFood(){
+  var selected = getText("foodDropdown");
+  var index = findFoodindex(selected);
+  var price = foodprices[index];
+  console.log(price);
+  if (getText("foodDropdown") == food[index] && money >= price){
+      foodamount[index] = foodamount[index] + 4;
+      money = Math.round(money - price);
+      setProperty("restStatus","text", "You have $" + money);
+      playSound("sound://category_alerts/vibrant_game_shutter_alert_1_short_quick.mp3", false);
+    } else {
+      setProperty("restStatus","text", "Not Enough Money");
+      playSound("sound://category_alerts/playful_game_error_sound_4.mp3",false);
+    }
+}
+
+onEvent("buyButton","click", function(){
+  buyFood();
+  setScreen("Shop");
+});
+
+setProperty("restStatus","text", "You have $" + money);
